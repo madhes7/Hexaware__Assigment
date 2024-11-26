@@ -9,12 +9,14 @@ namespace Student_Information_System.Repository
 {
     internal interface ICourseRepository
     {
-        void AssignTeacher(int course_id,int teacher_id);
-        void Update(int CourseId, string CourseName, int Credits, int teacherId);
-        void DisplayCourse(int course_id);
-        List<Student> GetEnrollments(int course_id);
+        bool AssignTeacherToCourse(int courseId, int teacherId);
+        bool UpdateCourseInfo(int courseId, string courseName, int credits, int teacherId);
 
-        Teacher GetTeacher(int course_id);
+        Course GetCourseById(int courseId);
+
+        Teacher GetTeacherForCourse(int courseId);
+
+        (int enrollmentCount, double totalPayments) GetCourseStatistics(int courseId);
 
     }
 }

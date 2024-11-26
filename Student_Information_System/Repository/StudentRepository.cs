@@ -1,174 +1,175 @@
-﻿using Student_Information_System.Model;
+﻿using Microsoft.VisualBasic;
+using Student_Information_System.Model;
 using Student_Information_System.Utility;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 
 namespace Student_Information_System.Repository
 {
     internal class StudentRepository : IStudentRepository
-
     {
-        public void EnrollInCourse(int studentId, int courseId)
-        {
-            using (var con = DBConnect.GetSqlConnection())
-            {
-                string query = "Insert into Enrollments (student_id,course_id) values (@student_id,@course_id)";
-                var cmd = new SqlCommand(query, con);
-                cmd.Parameters.AddWithValue("student_id", studentId);
-                cmd.Parameters.AddWithValue("course_id", courseId);
-                con.Open();
-                cmd.ExecuteNonQuery();
-                
-            }
-        }
-        public void UpdateStudentInfo(int studentId, string firstName, string lastName, DateTime dateOfBirth, string email, string phoneNumber)
-        {
-            using (var con = DBConnect.GetSqlConnection())
-            {
-                string query = "UPDATE Students SET First_Name = @FirstName, Last_Name = @LastName, " +
-                               "Date_Of_Birth = @DateOfBirth, Email = @Email, Phone_Number = @PhoneNumber " +
-                               "WHERE Student_ID = @StudentId";
-                var cmd = new SqlCommand(query, con);
-                cmd.Parameters.AddWithValue("StudentId", studentId);
-                cmd.Parameters.AddWithValue("FirstName", firstName);
-                cmd.Parameters.AddWithValue("LastName", lastName);
-                cmd.Parameters.AddWithValue("DateOfBirth", dateOfBirth);
-                cmd.Parameters.AddWithValue("Email", email);
-                cmd.Parameters.AddWithValue("PhoneNumber", phoneNumber);
 
-                con.Open();
-                cmd.ExecuteNonQuery();
-                
-            }
+        private readonly string _connectionString;
+        private readonly SqlCommand _cmd;
+
+        public StudentRepository()
+        {
+            _connectionString = DBConnect.GetConnectionString();
+            _cmd = new SqlCommand();
         }
 
-
-        public void MakePayment(int studentId, decimal amount, DateTime paymentDate)
+        public bool UpdateStudent(int studentId, string firstName, string lastName, DateTime dateOfBirth, string email, string phoneNumber)
         {
-            using (var con = DBConnect.GetSqlConnection())
-            {
-                string query = "Insert into Payments (student_id,amount,payment_date) values (@student_id,@amt,@date)";
-                var cmd = new SqlCommand(query, con);
-                cmd.Parameters.AddWithValue("student_id", studentId);
-                cmd.Parameters.AddWithValue("amt", amount);
-                cmd.Parameters.AddWithValue("date", paymentDate);
-                con.Open();
-                cmd.ExecuteNonQuery();
-                con.Close();
-            }
-        }
+            bool isUpdated = false;
 
-        public Student GetStudentById(int studentId)
-        {
-            using (var con = DBConnect.GetSqlConnection())
+            using (SqlConnection conn = new SqlConnection(_connectionString))
             {
-                string query = "Select * from  Students WHERE Student_ID = @StudentId";
-                var cmd = new SqlCommand(query, con);
-                cmd.Parameters.AddWithValue("StudentId", studentId);
-                con.Open();
-                using (var reader = cmd.ExecuteReader())
+                try
                 {
-                    if (reader.Read())
-                    {
-                        return new Student
-                        {
-                            Student_Id = Convert.ToInt32(reader["Student_ID"]),
-                            First_name = reader["First_Name"].ToString(),
-                            Last_name = reader["Last_Name"].ToString(),
-                            Date_Of_Birth = DateOnly.FromDateTime(Convert.ToDateTime(reader["Date_Of_Birth"])),
-                            Email = reader["Email"].ToString(),
-                            PhoneNumber = reader["Phone_Number"].ToString()
-                        };
-                    }
+                    string query = @"
+                           UPDATE Students
+                           SET 
+                            first_name = @FirstName,
+                            last_name = @LastName,
+                            date_of_birth = @DateOfBirth,
+                            email = @Email,
+                            phone_number = @PhoneNumber
+                        WHERE student_id = @StudentId";
+
+                    _cmd.CommandText = query;
+                    _cmd.Parameters.Clear();
+                    _cmd.Parameters.AddWithValue("@StudentId", studentId);
+                    _cmd.Parameters.AddWithValue("@FirstName", firstName);
+                    _cmd.Parameters.AddWithValue("@LastName", lastName);
+                    _cmd.Parameters.AddWithValue("@DateOfBirth", dateOfBirth);
+                    _cmd.Parameters.AddWithValue("@Email", email);
+                    _cmd.Parameters.AddWithValue("@PhoneNumber", phoneNumber);
+
+                    _cmd.Connection = conn;
+                    conn.Open();
+
+                    int rowsAffected = _cmd.ExecuteNonQuery();
+                    isUpdated = rowsAffected > 0;
                 }
-               
-            }
-            return null;
-        }
-        public List<Course> GetEnrolledCourses(int studentId)
-        {
-            List<Course> course = new List<Course>();
-            using (var con = DBConnect.GetSqlConnection())
-            {
-                string query = "SELECT C.Course_ID, C.Course_Name, C.Credits FROM Courses C " +
-                               "JOIN Enrollments E ON C.Course_ID = E.Course_ID WHERE E.Student_ID = @StudentId";
-                var cmd = new SqlCommand(query, con);
-                cmd.Parameters.AddWithValue("StudentId", studentId);
-                con.Open();
-                using (SqlDataReader reader = cmd.ExecuteReader())
+                catch (Exception ex)
                 {
-                    while (reader .Read())
-                    {
-                        course.Add(
-                            new Course
-                            {
-                                CourseId = Convert.ToInt32(reader["Course_ID"]),
-                                CourseName = reader["Course_Name"].ToString(),
-                                Credits = Convert.ToInt32(reader["Credits"]),
-                                
-                            }
-                            );
-
-                    }
+                    Console.WriteLine("Error updating student: " + ex.Message);
                 }
-
             }
-            
-            return course;
+
+            return isUpdated;
         }
-        public List<Payment> GetPaymentHistory(int studentId)
+
+        public List<Student> GetAllStudents()
         {
-            List<Payment> payment = new List<Payment>();
-            using (var con = DBConnect.GetSqlConnection())
+            List<Student> students = new List<Student>();
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
             {
-                string query = "SELECT * FROM Payments WHERE Student_ID = @StudentId";
-                var cmd = new SqlCommand(query, con);
-                cmd.Parameters.AddWithValue("StudentId", studentId);
-                con.Open();
-                using (SqlDataReader reader = cmd.ExecuteReader())
+                try
                 {
+                    _cmd.CommandText = "SELECT * FROM Students";
+                    _cmd.Connection = conn;
+                    conn.Open();
+                    SqlDataReader reader = _cmd.ExecuteReader();
+
                     while (reader.Read())
                     {
-                        payment.Add(
-                            new Payment
-                            {
-                                PaymentId = Convert.ToInt32(reader["Payment_ID"]),
-                                StudentId = Convert.ToInt32(reader["Student_ID"]),
-                                Amount = Convert.ToDecimal(reader["Amount"]),
-                                PaymentDate = Convert.ToDateTime(reader["Payment_Date"])
-
-                            }
-                            );
-
+                        students.Add(ExtractStudent(reader));
                     }
                 }
-
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error fetching students: " + ex.Message);
+                }
             }
 
-            return payment;
+            return students;
         }
-        public void DisplayStudentInfo(int studentId)
+
+        public bool MakePayment(int studentId, decimal amount, DateTime paymentDate)
         {
-            var student = GetStudentById(studentId);
-            if (student != null)
+            bool isPaymentRecorded = false;
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
             {
-                Console.WriteLine($"Student ID: {student.Student_Id}");
-                Console.WriteLine($"Name: {student.First_name} {student.Last_name}");
-                Console.WriteLine($"Date of Birth: {student.Date_Of_Birth.ToShortDateString()}");
-                Console.WriteLine($"Email: {student.Email}");
-                Console.WriteLine($"Phone: {student.PhoneNumber}");
-            }
-            else
-            {
-                Console.WriteLine("Student not found.");
+                try
+                {
+                    string query = @"
+                    INSERT INTO Payments (student_id, amount, payment_date)
+                    VALUES (@StudentId, @Amount, @PaymentDate)";
+
+                    _cmd.CommandText = query;
+                    _cmd.Parameters.Clear();
+                    _cmd.Parameters.AddWithValue("@StudentId", studentId);
+                    _cmd.Parameters.AddWithValue("@Amount", amount);
+                    _cmd.Parameters.AddWithValue("@PaymentDate", paymentDate);
+                    _cmd.Connection = conn;
+
+                    conn.Open();
+                    int rowsAffected = _cmd.ExecuteNonQuery();
+                    isPaymentRecorded = rowsAffected > 0;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error recording payment: {ex.Message}");
+                }
             }
 
+            return isPaymentRecorded;
         }
 
+        public List<Payment> GetPaymentHistory(int studentId)
+        {
+            List<Payment> paymentHistory = new List<Payment>();
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                try
+                {
+                    string query = @"
+                    SELECT payment_id, student_id, amount, payment_date
+                    FROM Payments
+                    WHERE student_id = @StudentId";
+
+                    _cmd.CommandText = query;
+                    _cmd.Parameters.Clear();
+                    _cmd.Parameters.AddWithValue("@StudentId", studentId);
+                    _cmd.Connection = conn;
+
+                    conn.Open();
+                    using (SqlDataReader reader = _cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            paymentHistory.Add(new Payment(
+                                (int)reader["payment_id"],
+                                (int)reader["student_id"],
+                                Convert.ToDecimal(reader["amount"]),
+                                Convert.ToDateTime(reader["payment_date"])
+                            ));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error retrieving payment history: {ex.Message}");
+                }
+            }
+
+            return paymentHistory;
+        }
+        private Student ExtractStudent(SqlDataReader reader)
+        {
+            return new Student(
+                Convert.ToInt32(reader["student_id"]),
+                reader["first_name"].ToString(),
+                reader["last_name"].ToString(),
+                DateOnly.FromDateTime(Convert.ToDateTime(reader["date_of_birth"])),
+                reader["email"].ToString(),
+                reader["phone_number"].ToString()
+            );
+        }
     }
 }

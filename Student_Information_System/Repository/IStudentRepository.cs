@@ -9,12 +9,11 @@ namespace Student_Information_System.Repository
 {
     internal interface IStudentRepository
     {
-        void EnrollInCourse(int studentId, int courseId);
-        void UpdateStudentInfo(int studentId, string firstName, string lastName, DateTime dateOfBirth, string email, string phoneNumber);
-        void MakePayment(int studentId, decimal amount, DateTime paymentDate);
-        Student GetStudentById(int studentId);
-        List<Course> GetEnrolledCourses(int studentId);
+
+        bool UpdateStudent(int studentId, string firstName, string lastName, DateTime dateOfBirth, string email, string phoneNumber);
+        List<Student> GetAllStudents();
+        bool MakePayment(int studentId, decimal amount, DateTime paymentDate);
+
         List<Payment> GetPaymentHistory(int studentId);
-        void DisplayStudentInfo(int studentId);
     }
 }

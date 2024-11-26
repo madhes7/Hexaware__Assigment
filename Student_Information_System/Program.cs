@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Student_Information_System.Main;
 using Student_Information_System.Model;
 using Student_Information_System.Repository;
 
@@ -8,10 +9,9 @@ namespace Student_Information_System
     {
         static void Main(string[] args)
         {
-            Main main_object = new Main();
 
-            // main_object.CheckStudent();
-            main_object.CheckCourse();
+            S_I_S s=new S_I_S();
+            s.Student_Information_System_Main();
 
         }
     }

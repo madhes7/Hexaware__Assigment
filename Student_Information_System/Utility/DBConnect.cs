@@ -5,15 +5,33 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Data.Sql;
 using System.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 
 namespace Student_Information_System.Utility
 {
     internal class DBConnect
     {
-        private static readonly string Connection = "Server=DESKTOP-BAHKPDL;Database=SISDB;Trusted_Connection=True";
-        public static SqlConnection GetSqlConnection()
+
+        private static IConfiguration _iconfiguration;
+
+        static DBConnect()
         {
-            return new SqlConnection(Connection);
+            GetAppSettingsFile();
+        }
+
+        private static void GetAppSettingsFile()
+        {
+            var builder = new ConfigurationBuilder()
+                        .SetBasePath(Directory.GetCurrentDirectory())
+                        .AddJsonFile("appsettings.json");
+            _iconfiguration = builder.Build();
+        }
+
+        public static string GetConnectionString()
+        {
+
+            return _iconfiguration.GetConnectionString("LocalConnectionString");
+
         }
     }
 }
